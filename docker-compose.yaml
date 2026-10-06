@@ -1,22 +1,91 @@
 services:
   catalogue:
-    build:
-      context: ./catalogue        # points to the folder containing Dockerfile
-      dockerfile: Dockerfile      # looks for the file named Dockerfile inside ./catalogue
+    build: ./catalogue
     image: gattampavan/catalogue:1.0.0
     container_name: catalogue
     depends_on:
-      - mongodb
-
+    - mongodb
+  user:
+    build: ./user
+    image: gattampavan/user:1.0.0
+    container_name: user
+    depends_on:
+    - redis
+    - mongodb
+  cart:
+    build: ./cart
+    image: gattampavan/cart:1.0.0
+    container_name: cart
+    depends_on:
+    - redis
+    - catalogue
+  shipping:
+    build: ./shipping
+    image: gattampavan/shipping:1.0.0
+    container_name: shipping
+    depends_on:
+    - mysql
+    - cart
+  payment:
+    build: ./payment
+    image: gattampavan/payment:1.0.0
+    container_name: payment
+    environment:
+      CART_HOST: "cart"
+      CART_PORT: "8080"
+      USER_HOST: "user"
+      USER_PORT: "8080"
+      AMQP_HOST: "rabbitmq"
+      AMQP_USER: "roboshop"
+      AMQP_PASS: "roboshop123"
+    depends_on:
+    - rabbitmq
+    - cart
+    - user
+  frontend:
+    build: ./frontend
+    image: gattampavan/frontend:1.0.0
+    container_name: frontend
+    ports:
+    - "80:80"
+    depends_on:
+    - catalogue
+    - user
+    - cart
+    - shipping
+    - payment
   mongodb:
-    build:
-      context: ./mongodb          # points to the folder containing Dockerfile
-      dockerfile: Dockerfile      # looks for the file named Dockerfile inside ./mongodb
-    image: gattampavan/mongodb:1.0.0
+    build: ./mongodb # it moves to mongodb directory
+    image: gattampavan/mongodb:1.0.0 # docker build -t gattampavan/mongodb:1.0.0
     container_name: mongodb
-
+    volumes:
+    - /:/data/db
+  redis:
+    image: redis:7.0
+    container_name: redis
+    volumes:
+    - redis:/data
+  mysql:
+    build: ./mysql
+    image: gattampavan/mysql:1.0.0
+    container_name: mysql
+    volumes:
+    - mysql:/var/lib/mysql
+  rabbitmq:
+    image: rabbitmq:3
+    environment: 
+      RABBITMQ_DEFAULT_USER: roboshop
+      RABBITMQ_DEFAULT_PASS: roboshop123
+    container_name: rabbitmq
+    volumes:
+    - rabbitmq:/var/lib/rabbitmq
 networks:
   default:
     driver: bridge
     name: roboshop
-    external: false # if true we need to create bridge network manually
+    external: false # if true, you need to create network manually
+volumes:
+  mongodb: # docker volume create mongodb
+  redis:
+  mysql:
+  rabbitmq:
