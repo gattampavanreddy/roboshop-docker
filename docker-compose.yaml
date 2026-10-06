@@ -6,18 +6,16 @@ services:
     container_name: catalogue
     depends_on:
       - mongodb
-    networks:
-      - roboshop
+
   mongodb:
     build: 
       dockerfile: mongodb.Dockerfile # it moves to mongodb directory and looks for Dockerfile
     image: gattampavan/mongodb:1.0.0 # this is equal to docker build -t gattampavan/mongodb:1.0.0 
     container_name: mongodb
-    networks:
-      - roboshop
+    
 
 networks:
-  roboshop:
+  default:
     driver: bridge
     name: roboshop 
     external: false # if true we need to create bridge network manually 
